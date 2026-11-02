@@ -35,13 +35,19 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PesoFlow-debug-apk
+          name: PesoFlow-v1.0.1-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish Latest APK Release
+      - name: Publish Release v1.0.1
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0-latest
-          name: "PesoFlow Android APK (Latest Build)"
+          tag_name: v1.0.1
+          name: "PesoFlow v1.0.1 — Minimalist Obsidian & Sage UI + Initial GCash Setup"
+          body: |
+            ### What's New in v1.0.1
+            - **First-Launch GCash Balance Setup (`OnboardingScreen`)**: Starts fresh and prompts you for your actual starting GCash balance (plus optional Cash & Bank balances).
+            - **Minimalist Obsidian Black & Sage Green Design**: Refined dark matte surface cards, subtle 1dp borders, clean typography, and thin progress bars.
+            - **Custom Vector Logo & Adaptive Launcher Icon**: Geometric Peso + Sage ring icon (`ic_launcher`) and in-app brand header.
+            - **Interactive Management**: Tap your GCash balance anytime to edit it, create custom Envelopes, add Recurring Bills, and create Sinking Fund Goals.
           files: app/build/outputs/apk/debug/app-debug.apk
           prerelease: false

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer minimalist sage ring -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,54m-26,0a26,26 0,1 1,52 0a26,26 0,1 1,-52 0"
+        android:strokeWidth="2.5"
+        android:strokeColor="#9CAF88" />
+    <!-- Geometric Peso 'P' stem + curves in soft sage -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M45,68L45,40L56,40C61.5,40 65,43.2 65,48C65,52.8 61.5,56 56,56L45,56"
+        android:strokeWidth="4.5"
+        android:strokeColor="#D8E4D0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Peso double horizontal bars -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M40,45L69,45M40,51L69,51"
+        android:strokeWidth="2.6"
+        android:strokeColor="#9CAF88"
+        android:strokeLineCap="round" />
+    <!-- Sage accent dot -->
+    <path
+        android:fillColor="#9CAF88"
+        android:pathData="M62,65m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+</vector>

@@ -6,9 +6,11 @@
 
     <application
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="PesoFlow"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@android:style/Theme.Material.NoActionBar">
 
         <!-- Main App Entry -->
         <activity
@@ -26,7 +28,7 @@
             android:name=".ShareReceiptActivity"
             android:exported="true"
             android:label="Import GCash Receipt to PesoFlow"
-            android:theme="@android:style/Theme.Material.Light.Dialog.NoActionBar">
+            android:theme="@android:style/Theme.Material.Dialog.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />

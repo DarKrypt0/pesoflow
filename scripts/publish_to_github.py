@@ -122,7 +122,7 @@ def main() -> None:
         f"/repos/{owner}/{args.name}/git/commits",
         token,
         {
-            "message": "Initial commit: PesoFlow Android budgeting app (Zero-Based + Cashflow + GCash Sync)",
+            "message": "Release v1.0.1: Minimalist Obsidian & Sage UI, custom logo, and initial GCash balance onboarding",
             "tree": new_tree["sha"],
             "parents": [base_commit_sha],
         },

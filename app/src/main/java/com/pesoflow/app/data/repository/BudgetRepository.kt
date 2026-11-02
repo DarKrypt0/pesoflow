@@ -2,6 +2,7 @@ package com.pesoflow.app.data.repository
 
 import com.pesoflow.app.data.local.dao.BudgetDao
 import com.pesoflow.app.data.local.entities.AccountEntity
+import com.pesoflow.app.data.local.entities.AccountType
 import com.pesoflow.app.data.local.entities.CategorizationRuleEntity
 import com.pesoflow.app.data.local.entities.EnvelopeEntity
 import com.pesoflow.app.data.local.entities.RecurringBillEntity
@@ -24,10 +25,52 @@ class BudgetRepository(private val dao: BudgetDao) {
     val totalConvenienceFees: Flow<Double> = dao.observeTotalConvenienceFees()
 
     /**
-     * Records a manual or AI quick-add transaction, applies smart auto-categorization
-     * if no envelope was explicitly chosen, updates the account balance sheet, and
-     * updates the Zero-Based envelope spent balance.
+     * Initializes user accounts on first-launch onboarding with the user's real
+     * starting GCash balance and optional Cash / Bank balances.
      */
+    suspend fun initializeOnboardingAccounts(
+        gcashInitialBalance: Double,
+        cashInitialBalance: Double,
+        bankInitialBalance: Double
+    ) {
+        dao.insertAccount(
+            AccountEntity(
+                id = 1L,
+                name = "GCash Wallet",
+                type = AccountType.GCASH,
+                balance = gcashInitialBalance,
+                isAsset = true,
+                colorHex = "#9CAF88"
+            )
+        )
+        dao.insertAccount(
+            AccountEntity(
+                id = 2L,
+                name = "Cash on Hand",
+                type = AccountType.CASH,
+                balance = cashInitialBalance,
+                isAsset = true,
+                colorHex = "#B5C9A1"
+            )
+        )
+        if (bankInitialBalance > 0.0) {
+            dao.insertAccount(
+                AccountEntity(
+                    id = 3L,
+                    name = "Bank Savings",
+                    type = AccountType.BANK,
+                    balance = bankInitialBalance,
+                    isAsset = true,
+                    colorHex = "#6B7F65"
+                )
+            )
+        }
+    }
+
+    suspend fun updateAccountBalance(account: AccountEntity, newBalance: Double) {
+        dao.updateAccount(account.copy(balance = newBalance))
+    }
+
     suspend fun addTransaction(
         merchantOrPayee: String,
         amount: Double,
@@ -40,7 +83,7 @@ class BudgetRepository(private val dao: BudgetDao) {
         note: String = ""
     ): Boolean {
         if (gcashReferenceNo != null && dao.existsByGCashRefNo(gcashReferenceNo)) {
-            return false // Duplicate GCash Reference No. ignored
+            return false
         }
 
         val rules = dao.getCategorizationRulesList()
@@ -61,7 +104,6 @@ class BudgetRepository(private val dao: BudgetDao) {
         )
         dao.insertTransaction(txn)
 
-        // Update Account Balance Sheet
         val account = dao.getAccountById(accountId)
         if (account != null) {
             val delta = if (type == TransactionType.INCOME) amount else -(amount + resolvedFee)
@@ -69,7 +111,6 @@ class BudgetRepository(private val dao: BudgetDao) {
             dao.updateAccount(account.copy(balance = newBalance))
         }
 
-        // Update Zero-Based Budget Envelope spent amount
         if (type == TransactionType.EXPENSE && resolvedEnvelopeId != null) {
             val env = dao.getEnvelopeById(resolvedEnvelopeId)
             if (env != null) {
@@ -90,7 +131,7 @@ class BudgetRepository(private val dao: BudgetDao) {
             convenienceFee = parsed.convenienceFee,
             type = parsed.type,
             source = source,
-            accountId = 1L, // Primary GCash Wallet
+            accountId = 1L,
             gcashReferenceNo = parsed.referenceNo,
             note = parsed.rawSummary
         )
@@ -99,6 +140,30 @@ class BudgetRepository(private val dao: BudgetDao) {
     suspend fun assignToEnvelope(envelope: EnvelopeEntity, additionalAssigned: Double) {
         dao.updateEnvelope(
             envelope.copy(assignedAmount = (envelope.assignedAmount + additionalAssigned).coerceAtLeast(0.0))
+        )
+    }
+
+    suspend fun createEnvelope(name: String, groupName: String, assignedAmount: Double) {
+        dao.insertEnvelope(
+            EnvelopeEntity(
+                name = name,
+                groupName = groupName,
+                iconName = "folder",
+                assignedAmount = assignedAmount,
+                spentAmount = 0.0
+            )
+        )
+    }
+
+    suspend fun createRecurringBill(name: String, amount: Double, fee: Double, dueDay: Int) {
+        dao.insertRecurringBill(
+            RecurringBillEntity(
+                name = name,
+                amount = amount,
+                convenienceFee = fee,
+                dueDayOfMonth = dueDay.coerceIn(1, 31),
+                payViaGCash = true
+            )
         )
     }
 
@@ -112,11 +177,24 @@ class BudgetRepository(private val dao: BudgetDao) {
                 convenienceFee = bill.convenienceFee,
                 type = TransactionType.EXPENSE,
                 source = TransactionSource.MANUAL,
-                accountId = if (bill.payViaGCash) 1L else 2L,
+                accountId = 1L,
                 envelopeId = bill.envelopeId,
                 note = "Recurring Bill Paid"
             )
         }
+    }
+
+    suspend fun createSavingsGoal(name: String, targetAmount: Double, targetDateIso: String) {
+        dao.insertSavingsGoal(
+            SavingsGoalEntity(
+                name = name,
+                targetAmount = targetAmount,
+                savedAmount = 0.0,
+                targetDateIso = targetDateIso,
+                colorHex = "#9CAF88",
+                isSinkingFund = true
+            )
+        )
     }
 
     suspend fun contributeToSavingsGoal(goal: SavingsGoalEntity, amount: Double) {

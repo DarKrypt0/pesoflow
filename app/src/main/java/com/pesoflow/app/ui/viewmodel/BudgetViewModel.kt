@@ -1,6 +1,7 @@
 package com.pesoflow.app.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pesoflow.app.data.local.PesoFlowDatabase
@@ -15,6 +16,7 @@ import com.pesoflow.app.data.local.entities.TransactionType
 import com.pesoflow.app.data.repository.BudgetRepository
 import com.pesoflow.app.domain.SmartQuickAddParser
 import com.pesoflow.app.sync.GCashParser
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -22,6 +24,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class BudgetUiState(
+    val isInitialized: Boolean = false,
+    val requiresOnboarding: Boolean = false,
     val accounts: List<AccountEntity> = emptyList(),
     val envelopes: List<EnvelopeEntity> = emptyList(),
     val transactions: List<TransactionEntity> = emptyList(),
@@ -30,7 +34,6 @@ data class BudgetUiState(
     val rules: List<CategorizationRuleEntity> = emptyList(),
     val totalConvenienceFees: Double = 0.0
 ) {
-    // Balance Sheet metrics
     val totalAssets: Double
         get() = accounts.filter { it.isAsset }.sumOf { it.balance }
 
@@ -40,16 +43,17 @@ data class BudgetUiState(
     val netWorth: Double
         get() = totalAssets - totalLiabilities
 
-    val gcashBalance: Double
-        get() = accounts.firstOrNull { it.id == 1L }?.balance ?: 0.0
+    val gcashAccount: AccountEntity?
+        get() = accounts.firstOrNull { it.id == 1L } ?: accounts.firstOrNull()
 
-    // Zero-Based Budgeting ("Ready to Assign") metric:
-    // Total liquid asset cash minus total assigned across envelopes
+    val gcashBalance: Double
+        get() = gcashAccount?.balance ?: 0.0
+
     val totalAssigned: Double
         get() = envelopes.sumOf { it.assignedAmount }
 
-    val totalAvailableInEnvelopes: Double
-        get() = envelopes.sumOf { it.availableAmount }
+    val totalSpent: Double
+        get() = envelopes.sumOf { it.spentAmount }
 
     val readyToAssign: Double
         get() = totalAssets - totalAssigned
@@ -57,8 +61,10 @@ data class BudgetUiState(
 
 class BudgetViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository: BudgetRepository
+    private val prefs = application.getSharedPreferences("pesoflow_prefs", Context.MODE_PRIVATE)
+    private val onboardingCompleteFlow = MutableStateFlow(prefs.getBoolean("onboarding_complete", false))
 
+    private val repository: BudgetRepository
     val uiState: StateFlow<BudgetUiState>
 
     init {
@@ -73,6 +79,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             repository.savingsGoals
         ) { accounts, envelopes, transactions, bills, goals ->
             BudgetUiState(
+                isInitialized = true,
                 accounts = accounts,
                 envelopes = envelopes,
                 transactions = transactions,
@@ -80,11 +87,16 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
                 savingsGoals = goals
             )
         }.combine(
-            combine(repository.categorizationRules, repository.totalConvenienceFees) { rules, fees ->
-                rules to fees
+            combine(
+                repository.categorizationRules,
+                repository.totalConvenienceFees,
+                onboardingCompleteFlow
+            ) { rules, fees, onboarded ->
+                Triple(rules, fees, onboarded)
             }
-        ) { baseState, (rules, fees) ->
+        ) { baseState, (rules, fees, onboarded) ->
             baseState.copy(
+                requiresOnboarding = !onboarded && baseState.accounts.isEmpty(),
                 rules = rules,
                 totalConvenienceFees = fees
             )
@@ -93,6 +105,28 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = BudgetUiState()
         )
+    }
+
+    fun completeOnboarding(
+        gcashInitialBalance: Double,
+        cashInitialBalance: Double,
+        bankInitialBalance: Double
+    ) {
+        viewModelScope.launch {
+            repository.initializeOnboardingAccounts(
+                gcashInitialBalance = gcashInitialBalance,
+                cashInitialBalance = cashInitialBalance,
+                bankInitialBalance = bankInitialBalance
+            )
+            prefs.edit().putBoolean("onboarding_complete", true).apply()
+            onboardingCompleteFlow.value = true
+        }
+    }
+
+    fun updateAccountBalance(account: AccountEntity, newBalance: Double) {
+        viewModelScope.launch {
+            repository.updateAccountBalance(account, newBalance)
+        }
     }
 
     fun addManualTransaction(
@@ -128,7 +162,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
                     convenienceFee = parsed.convenienceFee,
                     type = parsed.type,
                     source = TransactionSource.AI_QUICK_ADD,
-                    accountId = if (parsed.viaGCash) 1L else 3L,
+                    accountId = if (parsed.viaGCash) 1L else 2L,
                     note = parsed.note
                 )
             }
@@ -148,9 +182,27 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun addEnvelope(name: String, groupName: String, assignedAmount: Double) {
+        viewModelScope.launch {
+            repository.createEnvelope(name, groupName, assignedAmount)
+        }
+    }
+
+    fun addRecurringBill(name: String, amount: Double, fee: Double, dueDay: Int) {
+        viewModelScope.launch {
+            repository.createRecurringBill(name, amount, fee, dueDay)
+        }
+    }
+
     fun toggleBillPaid(bill: RecurringBillEntity) {
         viewModelScope.launch {
             repository.toggleBillPaid(bill)
+        }
+    }
+
+    fun addSavingsGoal(name: String, targetAmount: Double, targetDateIso: String) {
+        viewModelScope.launch {
+            repository.createSavingsGoal(name, targetAmount, targetDateIso)
         }
     }
 
