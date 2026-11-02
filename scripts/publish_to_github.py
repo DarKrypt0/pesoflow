@@ -4,8 +4,7 @@ Publishes the PesoFlow Android repository directly to your GitHub account as a P
 using the GitHub REST API (no git.exe or gh CLI required, only Python 3!).
 
 Usage:
-    set GITHUB_TOKEN=ghp_yourPersonalAccessToken
-    python scripts/publish_to_github.py --name pesoflow
+    python scripts/publish_to_github.py --name pesoflow --token ghp_yourPersonalAccessToken
 """
 
 import argparse
@@ -35,27 +34,27 @@ def github_request(method: str, path: str, token: str, payload: dict | None = No
             "User-Agent": "PesoFlow-Repo-Publisher",
         },
     )
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        raw = resp.read().decode("utf-8")
+        return json.loads(raw) if raw else {}
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Create and push PesoFlow to a Public GitHub repo.")
     parser.add_argument("--name", default="pesoflow", help="GitHub repository name (default: pesoflow)")
+    parser.add_argument("--token", default=None, help="GitHub Personal Access Token (or set GITHUB_TOKEN)")
     parser.add_argument("--private", action="store_true", help="Create as private instead of public")
     args = parser.parse_args()
 
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    token = args.token or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if not token:
-        print("Error: Please set GITHUB_TOKEN environment variable with a GitHub Personal Access Token.")
-        print("Example (PowerShell):")
-        print('  $env:GITHUB_TOKEN="ghp_xxx"; python scripts/publish_to_github.py')
+        print("Error: Please pass --token or set GITHUB_TOKEN environment variable.")
         sys.exit(1)
 
     root = Path(__file__).resolve().parent.parent
     user = github_request("GET", "/user", token)
     owner = user["login"]
-    print(f"Authenticated as @{owner}. Creating repository '{args.name}'...")
+    print(f"Authenticated as @{owner}. Ensuring repository '{args.name}' exists...")
 
     try:
         repo = github_request(
@@ -72,12 +71,18 @@ def main() -> None:
         print(f"Created repository: {repo['html_url']}")
     except urllib.error.HTTPError as e:
         if e.code == 422:
-            print(f"Repository @{owner}/{args.name} already exists, uploading files...")
+            print(f"Repository https://github.com/{owner}/{args.name} already exists, updating files...")
         else:
-            raise
+            err_body = e.read().decode("utf-8", errors="ignore")
+            print(f"Failed to create repository (HTTP {e.code}): {err_body}")
+            sys.exit(1)
 
-    ignore_dirs = {".git", ".gradle", "build", ".idea"}
-    files_uploaded = 0
+    # Get latest commit on default branch (main)
+    ref_data = github_request("GET", f"/repos/{owner}/{args.name}/git/ref/heads/main", token)
+    base_commit_sha = ref_data["object"]["sha"]
+
+    ignore_dirs = {".git", ".gradle", "build", ".idea", "__pycache__"}
+    tree_items = []
 
     for file_path in sorted(root.rglob("*")):
         if not file_path.is_file():
@@ -88,27 +93,49 @@ def main() -> None:
 
         rel_posix = rel.as_posix()
         content_b64 = base64.b64encode(file_path.read_bytes()).decode("ascii")
+        blob = github_request(
+            "POST",
+            f"/repos/{owner}/{args.name}/git/blobs",
+            token,
+            {"content": content_b64, "encoding": "base64"},
+        )
+        mode = "100755" if rel_posix == "gradlew" else "100644"
+        tree_items.append(
+            {
+                "path": rel_posix,
+                "mode": mode,
+                "type": "blob",
+                "sha": blob["sha"],
+            }
+        )
+        print(f"  [OK] Staged {rel_posix}")
 
-        # Check if file exists to get sha
-        sha = None
-        try:
-            existing = github_request("GET", f"/repos/{owner}/{args.name}/contents/{rel_posix}", token)
-            sha = existing.get("sha")
-        except urllib.error.HTTPError:
-            pass
+    new_tree = github_request(
+        "POST",
+        f"/repos/{owner}/{args.name}/git/trees",
+        token,
+        {"tree": tree_items},
+    )
 
-        body = {
-            "message": f"Add {rel_posix}",
-            "content": content_b64,
-        }
-        if sha:
-            body["sha"] = sha
+    new_commit = github_request(
+        "POST",
+        f"/repos/{owner}/{args.name}/git/commits",
+        token,
+        {
+            "message": "Initial commit: PesoFlow Android budgeting app (Zero-Based + Cashflow + GCash Sync)",
+            "tree": new_tree["sha"],
+            "parents": [base_commit_sha],
+        },
+    )
 
-        github_request("PUT", f"/repos/{owner}/{args.name}/contents/{rel_posix}", token, body)
-        files_uploaded += 1
-        print(f"  ✓ Uploaded {rel_posix}")
+    github_request(
+        "PATCH",
+        f"/repos/{owner}/{args.name}/git/refs/heads/main",
+        token,
+        {"sha": new_commit["sha"], "force": True},
+    )
 
-    print(f"\nSuccess! Uploaded {files_uploaded} files to https://github.com/{owner}/{args.name}")
+    print(f"\nSuccess! Published {len(tree_items)} files to https://github.com/{owner}/{args.name}")
 
 
 if __name__ == "__main__":

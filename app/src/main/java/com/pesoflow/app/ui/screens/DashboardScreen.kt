@@ -20,11 +20,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.pesoflow.app.data.local.entities.AccountEntity
+import com.pesoflow.app.data.local.entities.AccountType
 import com.pesoflow.app.data.local.entities.EnvelopeEntity
+import com.pesoflow.app.data.local.entities.TransactionEntity
+import com.pesoflow.app.data.local.entities.TransactionSource
 import com.pesoflow.app.data.local.entities.TransactionType
 import com.pesoflow.app.ui.theme.EmeraldGreen
 import com.pesoflow.app.ui.theme.GCashBlue
+import com.pesoflow.app.ui.theme.PesoFlowTheme
 import com.pesoflow.app.ui.theme.RoseExpense
 import com.pesoflow.app.ui.viewmodel.BudgetUiState
 import java.util.Locale
@@ -235,3 +241,37 @@ fun DashboardScreen(
 
 fun formatPeso(value: Double): String =
     String.format(Locale.US, "₱%,.2f", value)
+
+@Preview(showBackground = true)
+@Composable
+fun DashboardScreenPreview() {
+    PesoFlowTheme {
+        DashboardScreen(
+            state = BudgetUiState(
+                accounts = listOf(
+                    AccountEntity(1L, "GCash Wallet", AccountType.GCASH, 18450.0, true),
+                    AccountEntity(2L, "BPI Payroll / Savings", AccountType.BANK, 32000.0, true),
+                    AccountEntity(3L, "GCredit / Credit Card", AccountType.CREDIT_CARD, 3200.0, false)
+                ),
+                envelopes = listOf(
+                    EnvelopeEntity(1L, "Food & Dining", "Daily Living", "restaurant", 12000.0, 3450.0),
+                    EnvelopeEntity(2L, "Grab & Commute", "Daily Living", "commute", 4500.0, 1120.0),
+                    EnvelopeEntity(3L, "GCash & InstaPay Fees", "Fees & Buffer", "bolt", 300.0, 45.0)
+                ),
+                transactions = listOf(
+                    TransactionEntity(
+                        id = 1L,
+                        merchantOrPayee = "Jollibee BGC Stopover",
+                        amount = 245.0,
+                        convenienceFee = 0.0,
+                        type = TransactionType.EXPENSE,
+                        source = TransactionSource.GCASH_NOTIFICATION,
+                        gcashReferenceNo = "9018273649981"
+                    )
+                )
+            ),
+            onAssignEnvelope = { _, _ -> }
+        )
+    }
+}
+

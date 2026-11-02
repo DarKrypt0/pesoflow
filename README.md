@@ -139,7 +139,7 @@ app/src/main/java/com/pesoflow/app/
 ### Setup & Run
 1. Clone this repository:
    ```bash
-   git clone https://github.com/<your-username>/pesoflow.git
+   git clone https://github.com/DarKrypt0/pesoflow.git
    cd pesoflow
    ```
 2. *(Optional)* To enable cloud Gemini AI receipt/natural-language parsing alongside the built-in offline parser, add your API key to `local.properties`:

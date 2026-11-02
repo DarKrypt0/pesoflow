@@ -69,7 +69,7 @@ object SmartQuickAddParser {
 
     private suspend fun parseWithGemini(input: String): ParsedQuickAdd {
         val model = GenerativeModel(
-            modelName = "gemini-1.5-flash",
+            modelName = "gemini-3.8-flash",
             apiKey = BuildConfig.GEMINI_API_KEY
         )
         val prompt = """
