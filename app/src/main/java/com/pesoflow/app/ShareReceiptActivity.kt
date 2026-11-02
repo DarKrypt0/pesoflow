@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Receives GCash receipt screenshots (`image/*`) or exported GCash statement files
+ * Receives GCash receipt screenshots (MIME type image/png or image/jpeg) or exported GCash statement files
  * shared via Android's native Share Sheet, runs ML Kit OCR / statement parsing,
  * and saves them directly into the Room database.
  */
