@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Optional SMS permission for direct GCash SMS receipt parsing -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:label="PesoFlow"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!-- Main App Entry -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Share Sheet Target: Share GCash Receipt Screenshots or PDF Statements directly to PesoFlow -->
+        <activity
+            android:name=".ShareReceiptActivity"
+            android:exported="true"
+            android:label="Import GCash Receipt to PesoFlow"
+            android:theme="@android:style/Theme.Material.Light.Dialog.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+        </activity>
+
+        <!-- Real-Time GCash Push Notification & SMS Listener Service -->
+        <service
+            android:name=".sync.GCashNotificationListenerService"
+            android:exported="true"
+            android:label="PesoFlow GCash Auto-Sync"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- Home Screen Quick-Add & GCash Balance Widget (Jetpack Glance) -->
+        <receiver
+            android:name=".widget.PesoFlowWidgetReceiver"
+            android:exported="true"
+            android:label="PesoFlow Balance &amp; Quick Expense">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pesoflow_widget_info" />
+        </receiver>
+
+    </application>
+
+</manifest>
