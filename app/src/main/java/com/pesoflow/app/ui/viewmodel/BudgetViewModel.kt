@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 data class BudgetUiState(
     val isInitialized: Boolean = false,
     val requiresOnboarding: Boolean = false,
+    val userName: String = "Ken",
+    val isDarkTheme: Boolean = true,
     val accounts: List<AccountEntity> = emptyList(),
     val envelopes: List<EnvelopeEntity> = emptyList(),
     val transactions: List<TransactionEntity> = emptyList(),
@@ -49,20 +51,49 @@ data class BudgetUiState(
     val gcashBalance: Double
         get() = gcashAccount?.balance ?: 0.0
 
-    val totalAssigned: Double
+    val totalPlannedBudget: Double
         get() = envelopes.sumOf { it.assignedAmount }
 
-    val totalSpent: Double
+    val totalSpentInEnvelopes: Double
         get() = envelopes.sumOf { it.spentAmount }
 
+    val leftToSpend: Double
+        get() = (totalPlannedBudget - totalSpentInEnvelopes).coerceAtLeast(0.0)
+
+    val usedPercentage: Int
+        get() = if (totalPlannedBudget <= 0.0) 0
+        else ((totalSpentInEnvelopes / totalPlannedBudget) * 100.0).toInt().coerceIn(0, 100)
+
+    val monthlyIncome: Double
+        get() {
+            val loggedIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+            return if (loggedIncome > 0.0) loggedIncome else totalAssets
+        }
+
+    val monthlyExpenses: Double
+        get() = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.totalCashOutflow }
+
     val readyToAssign: Double
-        get() = totalAssets - totalAssigned
+        get() = totalAssets - totalPlannedBudget
+
+    val userInitials: String
+        get() {
+            val parts = userName.trim().split(" ").filter { it.isNotBlank() }
+            return when {
+                parts.size >= 2 -> "${parts[0].first()}${parts[1].first()}".uppercase()
+                parts.size == 1 && parts[0].length >= 2 -> parts[0].take(2).uppercase()
+                parts.size == 1 -> parts[0].uppercase()
+                else -> "PF"
+            }
+        }
 }
 
 class BudgetViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val prefs = application.getSharedPreferences("pesoflow_prefs", Context.MODE_PRIVATE)
+    private val prefs = application.getSharedPreferences("pesoflow_prefs_v3", Context.MODE_PRIVATE)
     private val onboardingCompleteFlow = MutableStateFlow(prefs.getBoolean("onboarding_complete", false))
+    private val userNameFlow = MutableStateFlow(prefs.getString("user_name", "Ken") ?: "Ken")
+    private val darkThemeFlow = MutableStateFlow(prefs.getBoolean("dark_theme", true))
 
     private val repository: BudgetRepository
     val uiState: StateFlow<BudgetUiState>
@@ -90,13 +121,24 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             combine(
                 repository.categorizationRules,
                 repository.totalConvenienceFees,
-                onboardingCompleteFlow
-            ) { rules, fees, onboarded ->
-                Triple(rules, fees, onboarded)
+                onboardingCompleteFlow,
+                userNameFlow,
+                darkThemeFlow
+            ) { rules, fees, onboarded, name, isDark ->
+                 listOf(rules, fees, onboarded, name, isDark)
             }
-        ) { baseState, (rules, fees, onboarded) ->
+        ) { baseState, extras ->
+            @Suppress("UNCHECKED_CAST")
+            val rules = extras[0] as List<CategorizationRuleEntity>
+            val fees = extras[1] as Double
+            val onboarded = extras[2] as Boolean
+            val name = extras[3] as String
+            val isDark = extras[4] as Boolean
+
             baseState.copy(
                 requiresOnboarding = !onboarded && baseState.accounts.isEmpty(),
+                userName = name,
+                isDarkTheme = isDark,
                 rules = rules,
                 totalConvenienceFees = fees
             )
@@ -108,24 +150,42 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun completeOnboarding(
+        userName: String,
         gcashInitialBalance: Double,
         cashInitialBalance: Double,
         bankInitialBalance: Double
     ) {
         viewModelScope.launch {
+            val cleanName = userName.trim().ifBlank { "Ken" }
             repository.initializeOnboardingAccounts(
                 gcashInitialBalance = gcashInitialBalance,
                 cashInitialBalance = cashInitialBalance,
                 bankInitialBalance = bankInitialBalance
             )
-            prefs.edit().putBoolean("onboarding_complete", true).apply()
+            prefs.edit()
+                .putBoolean("onboarding_complete", true)
+                .putString("user_name", cleanName)
+                .apply()
+            userNameFlow.value = cleanName
             onboardingCompleteFlow.value = true
         }
+    }
+
+    fun toggleTheme() {
+        val next = !darkThemeFlow.value
+        prefs.edit().putBoolean("dark_theme", next).apply()
+        darkThemeFlow.value = next
     }
 
     fun updateAccountBalance(account: AccountEntity, newBalance: Double) {
         viewModelScope.launch {
             repository.updateAccountBalance(account, newBalance)
+        }
+    }
+
+    fun setEnvelopePlannedAmount(envelope: EnvelopeEntity, newPlannedAmount: Double) {
+        viewModelScope.launch {
+            repository.setEnvelopePlannedAmount(envelope, newPlannedAmount)
         }
     }
 
@@ -162,7 +222,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
                     convenienceFee = parsed.convenienceFee,
                     type = parsed.type,
                     source = TransactionSource.AI_QUICK_ADD,
-                    accountId = if (parsed.viaGCash) 1L else 2L,
+                    accountId = 1L,
                     note = parsed.note
                 )
             }

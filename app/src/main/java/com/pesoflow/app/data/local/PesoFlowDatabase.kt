@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
         SavingsGoalEntity::class,
         CategorizationRuleEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class PesoFlowDatabase : RoomDatabase() {
@@ -58,48 +58,57 @@ abstract class PesoFlowDatabase : RoomDatabase() {
             CoroutineScope(Dispatchers.IO).launch {
                 val dao = INSTANCE?.budgetDao() ?: return@launch
 
-                // Seed clean Zero-Based Budget Envelopes (0.0 assigned/spent so user starts fresh)
-                val foodEnvId = dao.insertEnvelope(
+                // Seed the exact 6 Figma categories
+                val homeBillsId = dao.insertEnvelope(
                     EnvelopeEntity(
-                        name = "Food & Dining",
-                        groupName = "Essentials",
-                        iconName = "restaurant",
-                        assignedAmount = 0.0,
-                        spentAmount = 0.0
-                    )
-                )
-                val transportEnvId = dao.insertEnvelope(
-                    EnvelopeEntity(
-                        name = "Grab & Transit",
-                        groupName = "Essentials",
-                        iconName = "commute",
-                        assignedAmount = 0.0,
-                        spentAmount = 0.0
-                    )
-                )
-                val billsEnvId = dao.insertEnvelope(
-                    EnvelopeEntity(
-                        name = "Utilities & Subscriptions",
-                        groupName = "Fixed Bills",
-                        iconName = "receipt_long",
-                        assignedAmount = 0.0,
-                        spentAmount = 0.0
-                    )
-                )
-                val housingEnvId = dao.insertEnvelope(
-                    EnvelopeEntity(
-                        name = "Rent & Housing",
-                        groupName = "Fixed Bills",
+                        name = "Home & bills",
+                        groupName = "Fixed",
                         iconName = "home",
                         assignedAmount = 0.0,
                         spentAmount = 0.0
                     )
                 )
-                val feesEnvId = dao.insertEnvelope(
+                val groceriesId = dao.insertEnvelope(
                     EnvelopeEntity(
-                        name = "Transfer & InstaPay Fees",
-                        groupName = "Buffer",
-                        iconName = "bolt",
+                        name = "Groceries",
+                        groupName = "Essentials",
+                        iconName = "groceries",
+                        assignedAmount = 0.0,
+                        spentAmount = 0.0
+                    )
+                )
+                val foodDrinkId = dao.insertEnvelope(
+                    EnvelopeEntity(
+                        name = "Food & drink",
+                        groupName = "Essentials",
+                        iconName = "coffee",
+                        assignedAmount = 0.0,
+                        spentAmount = 0.0
+                    )
+                )
+                val transportId = dao.insertEnvelope(
+                    EnvelopeEntity(
+                        name = "Transport",
+                        groupName = "Essentials",
+                        iconName = "transport",
+                        assignedAmount = 0.0,
+                        spentAmount = 0.0
+                    )
+                )
+                val shoppingId = dao.insertEnvelope(
+                    EnvelopeEntity(
+                        name = "Shopping",
+                        groupName = "Lifestyle",
+                        iconName = "shopping",
+                        assignedAmount = 0.0,
+                        spentAmount = 0.0
+                    )
+                )
+                val wellbeingId = dao.insertEnvelope(
+                    EnvelopeEntity(
+                        name = "Wellbeing",
+                        groupName = "Lifestyle",
+                        iconName = "wellbeing",
                         assignedAmount = 0.0,
                         spentAmount = 0.0
                     )
@@ -107,22 +116,30 @@ abstract class PesoFlowDatabase : RoomDatabase() {
 
                 // Seed Smart Auto-Categorization Rules (PH Merchants & GCash Keywords)
                 listOf(
-                    CategorizationRuleEntity(pattern = "Jollibee", targetEnvelopeId = foodEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "McDonald", targetEnvelopeId = foodEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "Foodpanda", targetEnvelopeId = foodEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "Starbucks", targetEnvelopeId = foodEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "7-Eleven", targetEnvelopeId = foodEnvId, priority = 15),
-                    CategorizationRuleEntity(pattern = "Grab", targetEnvelopeId = transportEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "Angkas", targetEnvelopeId = transportEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "Move It", targetEnvelopeId = transportEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "Meralco", targetEnvelopeId = billsEnvId, defaultFee = 10.0, priority = 25),
-                    CategorizationRuleEntity(pattern = "Maynilad", targetEnvelopeId = billsEnvId, defaultFee = 7.0, priority = 25),
-                    CategorizationRuleEntity(pattern = "PLDT", targetEnvelopeId = billsEnvId, defaultFee = 10.0, priority = 25),
-                    CategorizationRuleEntity(pattern = "Globe", targetEnvelopeId = billsEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "Netflix", targetEnvelopeId = billsEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "Spotify", targetEnvelopeId = billsEnvId, priority = 20),
-                    CategorizationRuleEntity(pattern = "Rent", targetEnvelopeId = housingEnvId, priority = 15),
-                    CategorizationRuleEntity(pattern = "InstaPay", targetEnvelopeId = feesEnvId, defaultFee = 15.0, priority = 30)
+                    CategorizationRuleEntity(pattern = "Meralco", targetEnvelopeId = homeBillsId, defaultFee = 10.0, priority = 25),
+                    CategorizationRuleEntity(pattern = "Maynilad", targetEnvelopeId = homeBillsId, defaultFee = 7.0, priority = 25),
+                    CategorizationRuleEntity(pattern = "PLDT", targetEnvelopeId = homeBillsId, defaultFee = 10.0, priority = 25),
+                    CategorizationRuleEntity(pattern = "Globe", targetEnvelopeId = homeBillsId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Rent", targetEnvelopeId = homeBillsId, priority = 20),
+                    CategorizationRuleEntity(pattern = "InstaPay", targetEnvelopeId = homeBillsId, defaultFee = 15.0, priority = 30),
+                    CategorizationRuleEntity(pattern = "SM Markets", targetEnvelopeId = groceriesId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Puregold", targetEnvelopeId = groceriesId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Landers", targetEnvelopeId = groceriesId, priority = 20),
+                    CategorizationRuleEntity(pattern = "7-Eleven", targetEnvelopeId = groceriesId, priority = 15),
+                    CategorizationRuleEntity(pattern = "Jollibee", targetEnvelopeId = foodDrinkId, priority = 20),
+                    CategorizationRuleEntity(pattern = "McDonald", targetEnvelopeId = foodDrinkId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Starbucks", targetEnvelopeId = foodDrinkId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Foodpanda", targetEnvelopeId = foodDrinkId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Grab", targetEnvelopeId = transportId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Angkas", targetEnvelopeId = transportId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Move It", targetEnvelopeId = transportId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Shopee", targetEnvelopeId = shoppingId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Lazada", targetEnvelopeId = shoppingId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Uniqlo", targetEnvelopeId = shoppingId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Mercury Drug", targetEnvelopeId = wellbeingId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Watsons", targetEnvelopeId = wellbeingId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Spotify", targetEnvelopeId = wellbeingId, priority = 20),
+                    CategorizationRuleEntity(pattern = "Netflix", targetEnvelopeId = wellbeingId, priority = 20)
                 ).forEach { dao.insertCategorizationRule(it) }
             }
         }

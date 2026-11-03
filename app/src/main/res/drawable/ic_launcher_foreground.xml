@@ -4,29 +4,27 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Outer minimalist sage ring -->
+    <!-- Exact PesoFlow 'P' + flowing bottom wave in pale sage (#D4E0CD) -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M54,54m-26,0a26,26 0,1 1,52 0a26,26 0,1 1,-52 0"
-        android:strokeWidth="2.5"
-        android:strokeColor="#9CAF88" />
-    <!-- Geometric Peso 'P' stem + curves in soft sage -->
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M45,68L45,40L56,40C61.5,40 65,43.2 65,48C65,52.8 61.5,56 56,56L45,56"
-        android:strokeWidth="4.5"
-        android:strokeColor="#D8E4D0"
+        android:pathData="M43,34 L57,34 C65,34 69,38.5 69,44.5 C69,50.5 65,55 57,55 L43,55"
+        android:strokeWidth="4.6"
+        android:strokeColor="#D4E0CD"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
-    <!-- Peso double horizontal bars -->
+    <!-- Vertical stem flowing into bottom wave tail -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M40,45L69,45M40,51L69,51"
-        android:strokeWidth="2.6"
-        android:strokeColor="#9CAF88"
-        android:strokeLineCap="round" />
-    <!-- Sage accent dot -->
+        android:pathData="M43,34 L43,73 C48,73 53,66 60,66 L69,66"
+        android:strokeWidth="4.6"
+        android:strokeColor="#D4E0CD"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Upper and lower horizontal strike bars of the Peso sign -->
     <path
-        android:fillColor="#9CAF88"
-        android:pathData="M62,65m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+        android:fillColor="#00000000"
+        android:pathData="M35,41.5 L68,41.5 M35,48.5 L68,48.5"
+        android:strokeWidth="4.2"
+        android:strokeColor="#D4E0CD"
+        android:strokeLineCap="round" />
 </vector>

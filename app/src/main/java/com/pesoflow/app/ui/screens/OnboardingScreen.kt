@@ -19,6 +19,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,24 +32,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pesoflow.app.ui.components.MinimalistCard
 import com.pesoflow.app.ui.components.PesoFlowLogo
-import com.pesoflow.app.ui.theme.ObsidianBg
-import com.pesoflow.app.ui.theme.SageBright
-import com.pesoflow.app.ui.theme.SageContainer
-import com.pesoflow.app.ui.theme.SagePrimary
-import com.pesoflow.app.ui.theme.SubtleBorder
-import com.pesoflow.app.ui.theme.TextPrimary
-import com.pesoflow.app.ui.theme.TextSecondary
+import com.pesoflow.app.ui.theme.LocalPesoFlowColors
 
-/**
- * First-launch minimalist onboarding flow requiring the user to input their
- * starting GCash wallet balance (plus optional Cash / Bank balances).
- */
 @Composable
 fun OnboardingScreen(
-    onComplete: (gcashBalance: Double, cashBalance: Double, bankBalance: Double) -> Unit
+    onComplete: (userName: String, gcashBalance: Double, cashBalance: Double, bankBalance: Double) -> Unit
 ) {
+    val palette = LocalPesoFlowColors.current
+    var nameText by remember { mutableStateOf("") }
     var gcashText by remember { mutableStateOf("") }
     var cashText by remember { mutableStateOf("") }
     var bankText by remember { mutableStateOf("") }
@@ -57,138 +49,126 @@ fun OnboardingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBg)
+            .background(palette.background)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 40.dp),
+            .padding(horizontal = 24.dp, vertical = 48.dp),
         verticalArrangement = Arrangement.Center
     ) {
+        // Brand Logo + Wordmark matching Image 2
         Row(verticalAlignment = Alignment.CenterVertically) {
-            PesoFlowLogo(size = 48.dp)
+            PesoFlowLogo(size = 46.dp)
             Spacer(modifier = Modifier.width(14.dp))
-            Column {
-                Text(
-                    text = "PesoFlow",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
-                    letterSpacing = (-0.5).sp
-                )
-                Text(
-                    text = "MINIMALIST ZERO-BASED BUDGETING",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = SagePrimary,
-                    letterSpacing = 1.4.sp
-                )
-            }
+            Text(
+                text = "PesoFlow",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = palette.textPrimary,
+                letterSpacing = (-0.6).sp
+            )
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Let's set your starting balance.",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Medium,
-            color = TextPrimary,
-            letterSpacing = (-0.5).sp
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Enter how much you currently have in your GCash wallet so PesoFlow can calculate your exact Ready-to-Assign funds and track future transfers.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-            lineHeight = 20.sp
-        )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        MinimalistCard(
-            containerColor = SageContainer.copy(alpha = 0.55f),
-            borderColor = SagePrimary.copy(alpha = 0.45f)
+        Text(
+            text = "A little clarity, every day.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.textSecondary
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Set up your wallet",
+            fontSize = 30.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = palette.textPrimary,
+            letterSpacing = (-0.8).sp
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Main Sage Hero Card for Initial GCash Balance
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = palette.overviewHeroBg,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.padding(22.dp)) {
                 Text(
-                    text = "REQUIRED • PRIMARY WALLET",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = SageBright,
-                    letterSpacing = 1.2.sp
+                    text = "Primary GCash balance (Required)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.overviewHeroSubtext
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Current GCash Balance",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 OutlinedTextField(
                     value = gcashText,
                     onValueChange = {
                         gcashText = it
                         showError = false
                     },
-                    placeholder = { Text("0.00", color = TextSecondary.copy(alpha = 0.5f)) },
+                    placeholder = { Text("8,120.00", color = palette.overviewHeroSubtext.copy(alpha = 0.5f)) },
                     prefix = {
                         Text(
-                            text = "₱ ",
-                            color = SagePrimary,
-                            fontWeight = FontWeight.Bold
+                            text = "₱",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.overviewHeroText
                         )
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = SagePrimary,
-                        unfocusedBorderColor = SubtleBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = palette.overviewHeroText,
+                        unfocusedBorderColor = palette.overviewHeroSubtext.copy(alpha = 0.35f),
+                        focusedTextColor = palette.overviewHeroText,
+                        unfocusedTextColor = palette.overviewHeroText
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (showError) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Please enter your current GCash balance (0 or more) to continue.",
+                        text = "Please enter your starting GCash balance to continue.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary
+                        color = palette.overviewHeroText
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
-        MinimalistCard {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "OPTIONAL • OTHER LIQUID ACCOUNTS",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary,
-                    letterSpacing = 1.2.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = cashText,
-                    onValueChange = { cashText = it },
-                    label = { Text("Cash on Hand (Optional)") },
-                    prefix = { Text("₱ ", color = TextSecondary) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = bankText,
-                    onValueChange = { bankText = it },
-                    label = { Text("Bank Savings / Payroll (Optional)") },
-                    prefix = { Text("₱ ", color = TextSecondary) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+        OutlinedTextField(
+            value = nameText,
+            onValueChange = { nameText = it },
+            label = { Text("Your first name (e.g. Ken)") },
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedTextField(
+                value = cashText,
+                onValueChange = { cashText = it },
+                label = { Text("Cash (Optional)") },
+                prefix = { Text("₱") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = bankText,
+                onValueChange = { bankText = it },
+                label = { Text("Bank (Optional)") },
+                prefix = { Text("₱") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.weight(1f)
+            )
         }
 
         Spacer(modifier = Modifier.height(28.dp))
@@ -201,20 +181,20 @@ fun OnboardingScreen(
                 } else {
                     val cash = cashText.replace(",", "").trim().toDoubleOrNull() ?: 0.0
                     val bank = bankText.replace(",", "").trim().toDoubleOrNull() ?: 0.0
-                    onComplete(gcash, cash, bank)
+                    onComplete(nameText.ifBlank { "Ken" }, gcash, cash, bank)
                 }
             },
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = SagePrimary,
-                contentColor = ObsidianBg
+                containerColor = palette.chipActiveBg,
+                contentColor = palette.chipActiveText
             ),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
         ) {
             Text(
-                text = "Continue to PesoFlow →",
+                text = "Start budgeting",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )

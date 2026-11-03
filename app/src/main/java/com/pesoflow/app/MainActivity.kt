@@ -4,28 +4,30 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -34,30 +36,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pesoflow.app.ui.components.PesoFlowLogo
 import com.pesoflow.app.ui.components.QuickAddSheet
-import com.pesoflow.app.ui.screens.BillsCalendarScreen
+import com.pesoflow.app.ui.screens.ActivityScreen
+import com.pesoflow.app.ui.screens.BudgetsScreen
 import com.pesoflow.app.ui.screens.DashboardScreen
-import com.pesoflow.app.ui.screens.GCashSyncScreen
 import com.pesoflow.app.ui.screens.OnboardingScreen
-import com.pesoflow.app.ui.screens.SavingsGoalsScreen
-import com.pesoflow.app.ui.theme.CharcoalSurface
-import com.pesoflow.app.ui.theme.ObsidianBg
+import com.pesoflow.app.ui.theme.LocalPesoFlowColors
 import com.pesoflow.app.ui.theme.PesoFlowTheme
-import com.pesoflow.app.ui.theme.SageBright
-import com.pesoflow.app.ui.theme.SageContainer
-import com.pesoflow.app.ui.theme.SagePrimary
-import com.pesoflow.app.ui.theme.TextPrimary
-import com.pesoflow.app.ui.theme.TextSecondary
 import com.pesoflow.app.ui.viewmodel.BudgetViewModel
 
 class MainActivity : ComponentActivity() {
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -65,19 +61,21 @@ class MainActivity : ComponentActivity() {
         val openQuickAddFromWidget = intent?.getBooleanExtra("OPEN_QUICK_ADD", false) == true
 
         setContent {
-            PesoFlowTheme {
-                val viewModel: BudgetViewModel = viewModel()
-                val uiState by viewModel.uiState.collectAsState()
+            val viewModel: BudgetViewModel = viewModel()
+            val uiState by viewModel.uiState.collectAsState()
+
+            PesoFlowTheme(darkTheme = uiState.isDarkTheme) {
+                val palette = LocalPesoFlowColors.current
 
                 if (!uiState.isInitialized) {
-                    Box(modifier = Modifier)
+                    Box(modifier = Modifier.background(palette.background))
                     return@PesoFlowTheme
                 }
 
                 if (uiState.requiresOnboarding) {
                     OnboardingScreen(
-                        onComplete = { gcash, cash, bank ->
-                            viewModel.completeOnboarding(gcash, cash, bank)
+                        onComplete = { name, gcash, cash, bank ->
+                            viewModel.completeOnboarding(name, gcash, cash, bank)
                         }
                     )
                     return@PesoFlowTheme
@@ -86,105 +84,58 @@ class MainActivity : ComponentActivity() {
                 var selectedTab by remember { mutableIntStateOf(0) }
                 var showQuickAdd by remember { mutableStateOf(openQuickAddFromWidget) }
 
-                val navColors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = SageBright,
-                    selectedTextColor = SageBright,
-                    indicatorColor = SageContainer,
-                    unselectedIconColor = TextSecondary,
-                    unselectedTextColor = TextSecondary
-                )
-
                 Scaffold(
-                    containerColor = ObsidianBg,
-                    topBar = {
-                        TopAppBar(
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = ObsidianBg,
-                                titleContentColor = TextPrimary
-                            ),
-                            title = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    PesoFlowLogo(size = 30.dp)
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "PesoFlow",
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = (-0.4).sp
-                                    )
-                                }
-                            }
-                        )
-                    },
-                    floatingActionButton = {
-                        FloatingActionButton(
-                            onClick = { showQuickAdd = true },
-                            containerColor = SagePrimary,
-                            contentColor = ObsidianBg,
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Quick Add Expense")
-                        }
-                    },
+                    containerColor = palette.background,
                     bottomBar = {
-                        NavigationBar(
-                            containerColor = CharcoalSurface,
-                            tonalElevation = 0.dp
-                        ) {
-                            NavigationBarItem(
-                                selected = selectedTab == 0,
-                                onClick = { selectedTab = 0 },
-                                icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) },
-                                label = { Text("Budget") },
-                                colors = navColors
-                            )
-                            NavigationBarItem(
-                                selected = selectedTab == 1,
-                                onClick = { selectedTab = 1 },
-                                icon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                                label = { Text("Bills") },
-                                colors = navColors
-                            )
-                            NavigationBarItem(
-                                selected = selectedTab == 2,
-                                onClick = { selectedTab = 2 },
-                                icon = { Icon(Icons.Default.Savings, contentDescription = null) },
-                                label = { Text("Goals") },
-                                colors = navColors
-                            )
-                            NavigationBarItem(
-                                selected = selectedTab == 3,
-                                onClick = { selectedTab = 3 },
-                                icon = { Icon(Icons.Default.Sync, contentDescription = null) },
-                                label = { Text("GCash") },
-                                colors = navColors
-                            )
-                        }
+                        FigmaBottomBar(
+                            selectedTab = selectedTab,
+                            onSelectTab = { selectedTab = it }
+                        )
                     }
                 ) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
+                    Box(
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .statusBarsPadding()
+                    ) {
                         when (selectedTab) {
                             0 -> DashboardScreen(
                                 state = uiState,
-                                onAssignEnvelope = { env, amt -> viewModel.assignFundsToEnvelope(env, amt) },
-                                onUpdateAccountBalance = { acc, bal -> viewModel.updateAccountBalance(acc, bal) },
-                                onCreateEnvelope = { name, grp, amt -> viewModel.addEnvelope(name, grp, amt) }
+                                onNavigateToBudgets = { selectedTab = 1 },
+                                onNavigateToActivity = { selectedTab = 2 },
+                                onToggleTheme = { viewModel.toggleTheme() },
+                                onUpdateAccountBalance = { acc, bal ->
+                                    viewModel.updateAccountBalance(acc, bal)
+                                }
                             )
-                            1 -> BillsCalendarScreen(
-                                bills = uiState.recurringBills,
-                                onTogglePaid = { viewModel.toggleBillPaid(it) },
-                                onAddBill = { name, amt, fee, day -> viewModel.addRecurringBill(name, amt, fee, day) }
+                            1 -> BudgetsScreen(
+                                state = uiState,
+                                onUpdateCategoryBudget = { env, planned ->
+                                    viewModel.setEnvelopePlannedAmount(env, planned)
+                                },
+                                onCreateCategory = { name, planned ->
+                                    viewModel.addEnvelope(name, "Custom", planned)
+                                },
+                                onToggleBillPaid = { viewModel.toggleBillPaid(it) },
+                                onAddBill = { name, amt, fee, day ->
+                                    viewModel.addRecurringBill(name, amt, fee, day)
+                                },
+                                onContributeGoal = { goal, amt ->
+                                    viewModel.contributeToGoal(goal, amt)
+                                },
+                                onAddGoal = { name, target, date ->
+                                    viewModel.addSavingsGoal(name, target, date)
+                                }
                             )
-                            2 -> SavingsGoalsScreen(
-                                goals = uiState.savingsGoals,
-                                onContribute = { goal, amt -> viewModel.contributeToGoal(goal, amt) },
-                                onAddGoal = { name, target, date -> viewModel.addSavingsGoal(name, target, date) }
-                            )
-                            3 -> GCashSyncScreen(
-                                totalConvenienceFees = uiState.totalConvenienceFees,
-                                rules = uiState.rules,
-                                envelopes = uiState.envelopes,
-                                onSimulateGCashNotification = { viewModel.simulateGCashNotification(it) },
-                                onAddRule = { pattern, envId, fee -> viewModel.addSmartRule(pattern, envId, fee) }
+                            2 -> ActivityScreen(
+                                state = uiState,
+                                onOpenQuickAdd = { showQuickAdd = true },
+                                onSimulateGCashNotification = {
+                                    viewModel.simulateGCashNotification(it)
+                                },
+                                onAddRule = { pattern, envId, fee ->
+                                    viewModel.addSmartRule(pattern, envId, fee)
+                                }
                             )
                         }
                     }
@@ -204,5 +155,91 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+}
+
+/**
+ * Exact 3-item bottom navigation bar from the Figma design:
+ * Overview (Grid) | Budgets (Pie) | Activity (Swap arrows)
+ * with the oval sage pill indicator on the active icon.
+ */
+@Composable
+private fun FigmaBottomBar(
+    selectedTab: Int,
+    onSelectTab: (Int) -> Unit
+) {
+    val palette = LocalPesoFlowColors.current
+    val items = listOf(
+        Triple(0, "Overview", Icons.Outlined.GridView),
+        Triple(1, "Budgets", Icons.Outlined.PieChart),
+        Triple(2, "Activity", Icons.Outlined.SwapHoriz)
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.navBarBg)
+            .navigationBarsPadding()
+    ) {
+        HorizontalDivider(color = palette.divider, thickness = 0.8.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            for ((index, label, icon) in items) {
+                val active = selectedTab == index
+                FigmaNavItem(
+                    label = label,
+                    icon = icon,
+                    active = active,
+                    onClick = { onSelectTab(index) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FigmaNavItem(
+    label: String,
+    icon: ImageVector,
+    active: Boolean,
+    onClick: () -> Unit
+) {
+    val palette = LocalPesoFlowColors.current
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(if (active) palette.navIndicatorPill else Color.Transparent)
+                .padding(horizontal = 20.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (active) palette.navIconActive else palette.navIconInactive,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (active) palette.textPrimary else palette.navIconInactive
+        )
     }
 }
