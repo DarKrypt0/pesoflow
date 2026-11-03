@@ -3,6 +3,8 @@ package com.pesoflow.app.sync
 import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import androidx.glance.appwidget.updateAll
+import com.pesoflow.app.widget.PesoFlowGlanceWidget
 import com.pesoflow.app.data.local.PesoFlowDatabase
 import com.pesoflow.app.data.local.entities.TransactionSource
 import com.pesoflow.app.data.repository.BudgetRepository
@@ -59,6 +61,9 @@ class GCashNotificationListenerService : NotificationListenerService() {
             val db = PesoFlowDatabase.getInstance(applicationContext)
             val repository = BudgetRepository(db.budgetDao())
             repository.recordParsedGCashTransaction(parsed, source)
+            runCatching {
+                PesoFlowGlanceWidget().updateAll(applicationContext)
+            }
         }
     }
 }

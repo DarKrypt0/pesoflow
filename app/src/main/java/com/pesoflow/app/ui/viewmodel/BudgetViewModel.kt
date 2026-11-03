@@ -2,6 +2,7 @@ package com.pesoflow.app.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
+import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pesoflow.app.data.local.PesoFlowDatabase
@@ -109,6 +110,7 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
             repository.recurringBills,
             repository.savingsGoals
         ) { accounts, envelopes, transactions, bills, goals ->
+            refreshWidget()
             BudgetUiState(
                 isInitialized = true,
                 accounts = accounts,
@@ -168,6 +170,15 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
                 .apply()
             userNameFlow.value = cleanName
             onboardingCompleteFlow.value = true
+        }
+    }
+
+    private fun refreshWidget() {
+        val ctx = getApplication<Application>()
+        viewModelScope.launch {
+            runCatching {
+                com.pesoflow.app.widget.PesoFlowGlanceWidget().updateAll(ctx)
+            }
         }
     }
 
