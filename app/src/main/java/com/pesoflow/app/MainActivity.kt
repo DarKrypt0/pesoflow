@@ -43,6 +43,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pesoflow.app.data.local.entities.TransactionEntity
+import com.pesoflow.app.ui.components.EditTransactionSheet
 import com.pesoflow.app.ui.components.QuickAddSheet
 import com.pesoflow.app.ui.screens.ActivityScreen
 import com.pesoflow.app.ui.screens.BudgetsScreen
@@ -83,6 +85,7 @@ class MainActivity : ComponentActivity() {
 
                 var selectedTab by remember { mutableIntStateOf(0) }
                 var showQuickAdd by remember { mutableStateOf(openQuickAddFromWidget) }
+                var editingTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
 
                 Scaffold(
                     containerColor = palette.background,
@@ -106,7 +109,8 @@ class MainActivity : ComponentActivity() {
                                 onToggleTheme = { viewModel.toggleTheme() },
                                 onUpdateAccountBalance = { acc, bal ->
                                     viewModel.updateAccountBalance(acc, bal)
-                                }
+                                },
+                                onSelectTransaction = { editingTransaction = it }
                             )
                             1 -> BudgetsScreen(
                                 state = uiState,
@@ -130,6 +134,7 @@ class MainActivity : ComponentActivity() {
                             2 -> ActivityScreen(
                                 state = uiState,
                                 onOpenQuickAdd = { showQuickAdd = true },
+                                onSelectTransaction = { editingTransaction = it },
                                 onSimulateGCashNotification = {
                                     viewModel.simulateGCashNotification(it)
                                 },
@@ -149,6 +154,20 @@ class MainActivity : ComponentActivity() {
                             },
                             onAddNaturalLanguage = { prompt ->
                                 viewModel.addNaturalLanguageTransaction(prompt)
+                            }
+                        )
+                    }
+
+                    editingTransaction?.let { txn ->
+                        EditTransactionSheet(
+                            transaction = txn,
+                            envelopes = uiState.envelopes,
+                            onDismiss = { editingTransaction = null },
+                            onSave = { updated ->
+                                viewModel.editTransaction(txn, updated)
+                            },
+                            onDelete = { toDelete ->
+                                viewModel.deleteTransaction(toDelete)
                             }
                         )
                     }

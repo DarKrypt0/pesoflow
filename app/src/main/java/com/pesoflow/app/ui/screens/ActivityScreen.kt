@@ -41,6 +41,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pesoflow.app.data.local.entities.TransactionEntity
 import com.pesoflow.app.data.local.entities.TransactionType
 import com.pesoflow.app.ui.theme.LocalPesoFlowColors
 import com.pesoflow.app.ui.viewmodel.BudgetUiState
@@ -56,6 +57,7 @@ import java.util.Locale
 fun ActivityScreen(
     state: BudgetUiState,
     onOpenQuickAdd: () -> Unit,
+    onSelectTransaction: (TransactionEntity) -> Unit,
     onSimulateGCashNotification: (String) -> Unit,
     onAddRule: (String, Long, Double) -> Unit
 ) {
@@ -286,7 +288,8 @@ fun ActivityScreen(
                             subtitle = "$catName · $timeStr$feeNote",
                             amount = txn.totalCashOutflow,
                             isIncome = txn.type == TransactionType.INCOME,
-                            icon = categoryIconFor(catName, txn.type)
+                            icon = categoryIconFor(catName, txn.type),
+                            onClick = { onSelectTransaction(txn) }
                         )
                         if (index < filteredTransactions.lastIndex) {
                             HorizontalDivider(color = palette.divider, thickness = 0.8.dp)

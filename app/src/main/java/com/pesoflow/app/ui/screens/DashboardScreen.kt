@@ -69,7 +69,8 @@ fun DashboardScreen(
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToActivity: () -> Unit = {},
     onToggleTheme: () -> Unit = {},
-    onUpdateAccountBalance: (AccountEntity, Double) -> Unit = { _, _ -> }
+    onUpdateAccountBalance: (AccountEntity, Double) -> Unit = { _, _ -> },
+    onSelectTransaction: (TransactionEntity) -> Unit = {}
 ) {
     val palette = LocalPesoFlowColors.current
     var showEditBalanceDialog by remember { mutableStateOf(false) }
@@ -339,7 +340,8 @@ fun DashboardScreen(
                     subtitle = "$categoryName · Today",
                     amount = txn.totalCashOutflow,
                     isIncome = txn.type == TransactionType.INCOME,
-                    icon = categoryIconFor(categoryName, txn.type)
+                    icon = categoryIconFor(categoryName, txn.type),
+                    onClick = { onSelectTransaction(txn) }
                 )
                 if (index < recent.lastIndex) {
                     HorizontalDivider(color = palette.divider, thickness = 0.8.dp)
@@ -397,12 +399,14 @@ fun TransactionRowItem(
     subtitle: String,
     amount: Double,
     isIncome: Boolean,
-    icon: ImageVector
+    icon: ImageVector,
+    onClick: () -> Unit = {}
 ) {
     val palette = LocalPesoFlowColors.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically

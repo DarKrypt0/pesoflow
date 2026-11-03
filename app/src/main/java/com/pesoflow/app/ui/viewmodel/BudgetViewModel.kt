@@ -212,6 +212,18 @@ class BudgetViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun editTransaction(oldTxn: TransactionEntity, updatedTxn: TransactionEntity) {
+        viewModelScope.launch {
+            repository.editTransaction(oldTxn, updatedTxn)
+        }
+    }
+
+    fun deleteTransaction(txn: TransactionEntity) {
+        viewModelScope.launch {
+            repository.deleteTransaction(txn)
+        }
+    }
+
     fun addNaturalLanguageTransaction(input: String) {
         viewModelScope.launch {
             val parsed = SmartQuickAddParser.parse(input)

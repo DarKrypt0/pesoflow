@@ -1,6 +1,7 @@
 package com.pesoflow.app.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -30,7 +31,7 @@ interface BudgetDao {
     suspend fun updateAccount(account: AccountEntity)
 
     // --- Zero-Based Budget Envelopes ---
-    @Query("SELECT * FROM envelopes ORDER BY groupName ASC, id ASC")
+    @Query("SELECT * FROM envelopes ORDER BY id ASC")
     fun observeEnvelopes(): Flow<List<EnvelopeEntity>>
 
     @Query("SELECT * FROM envelopes WHERE id = :envelopeId LIMIT 1")
@@ -54,6 +55,12 @@ interface BudgetDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
+
+    @Update
+    suspend fun updateTransaction(transaction: TransactionEntity)
+
+    @Delete
+    suspend fun deleteTransaction(transaction: TransactionEntity)
 
     // --- Recurring Bills & Subscriptions (Calendar View) ---
     @Query("SELECT * FROM recurring_bills ORDER BY dueDayOfMonth ASC")

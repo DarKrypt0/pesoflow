@@ -26,12 +26,6 @@ class BudgetRepository(private val dao: BudgetDao) {
     val categorizationRules: Flow<List<CategorizationRuleEntity>> = dao.observeCategorizationRules()
     val totalConvenienceFees: Flow<Double> = dao.observeTotalConvenienceFees()
 
-    /**
-     * Initializes user accounts on first-launch onboarding with the user's real
-     * starting GCash balance and optional Cash / Bank balances, and allocates an
-     * initial zero-based budget across the 6 Figma categories so the user can
-     * immediately see their "Left to spend" & "Room to breathe" (editable anytime).
-     */
     suspend fun initializeOnboardingAccounts(
         gcashInitialBalance: Double,
         cashInitialBalance: Double,
@@ -75,7 +69,6 @@ class BudgetRepository(private val dao: BudgetDao) {
         val totalLiquid = gcashInitialBalance + cashInitialBalance + bankInitialBalance
         val existingEnvelopes = dao.observeEnvelopes().firstOrNull().orEmpty()
         if (totalLiquid > 0.0 && existingEnvelopes.all { it.assignedAmount == 0.0 }) {
-            // Allocate sensible zero-based default percentages across the 6 categories
             val weights = mapOf(
                 "Home & bills" to 0.35,
                 "Groceries" to 0.20,
@@ -132,22 +125,62 @@ class BudgetRepository(private val dao: BudgetDao) {
             gcashReferenceNo = gcashReferenceNo
         )
         dao.insertTransaction(txn)
+        applyTransactionImpact(txn, reverse = false)
+        return true
+    }
 
-        val account = dao.getAccountById(accountId)
+    /**
+     * Edits an existing transaction while keeping both the Account balance
+     * and the linked Budget Category `spentAmount` accurately synchronized.
+     */
+    suspend fun editTransaction(
+        oldTxn: TransactionEntity,
+        updatedTxn: TransactionEntity
+    ) {
+        // 1. Reverse old transaction's effect on account balance & envelope spent amount
+        applyTransactionImpact(oldTxn, reverse = true)
+        // 2. Persist updated transaction
+        dao.updateTransaction(updatedTxn)
+        // 3. Apply new transaction's effect on account balance & envelope spent amount
+        applyTransactionImpact(updatedTxn, reverse = false)
+    }
+
+    /**
+     * Deletes an existing transaction and reverses its impact on account & envelope balances.
+     */
+    suspend fun deleteTransaction(txn: TransactionEntity) {
+        applyTransactionImpact(txn, reverse = true)
+        dao.deleteTransaction(txn)
+    }
+
+    private suspend fun applyTransactionImpact(txn: TransactionEntity, reverse: Boolean) {
+        val direction = if (reverse) -1.0 else 1.0
+
+        val account = dao.getAccountById(txn.accountId)
         if (account != null) {
-            val delta = if (type == TransactionType.INCOME) amount else -(amount + resolvedFee)
-            val newBalance = if (account.isAsset) account.balance + delta else account.balance - delta
+            val baseDelta = if (txn.type == TransactionType.INCOME) {
+                txn.amount
+            } else {
+                -(txn.amount + txn.convenienceFee)
+            }
+            val signedDelta = baseDelta * direction
+            val newBalance = if (account.isAsset) {
+                account.balance + signedDelta
+            } else {
+                account.balance - signedDelta
+            }
             dao.updateAccount(account.copy(balance = newBalance))
         }
 
-        if (type == TransactionType.EXPENSE && resolvedEnvelopeId != null) {
-            val env = dao.getEnvelopeById(resolvedEnvelopeId)
+        if (txn.type == TransactionType.EXPENSE && txn.envelopeId != null) {
+            val env = dao.getEnvelopeById(txn.envelopeId)
             if (env != null) {
-                dao.updateEnvelope(env.copy(spentAmount = env.spentAmount + amount + resolvedFee))
+                val spentDelta = (txn.amount + txn.convenienceFee) * direction
+                dao.updateEnvelope(
+                    env.copy(spentAmount = (env.spentAmount + spentDelta).coerceAtLeast(0.0))
+                )
             }
         }
-
-        return true
     }
 
     suspend fun recordParsedGCashTransaction(
